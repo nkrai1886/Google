@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Match - Theme of the Day 🎮</title>
+    
+    <!-- Tailwind CSS CDN - Only external dependency -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Custom CSS Variables for Theme of the Day */
+        :root {
+            --primary-color: #FF6B9D;
+            --secondary-color: #C44569;
+            --bg-gradient-start: #FEC8D8;
+            --bg-gradient-end: #FFDDE1;
+            --card-bg: #FFFFFF;
+            --card-shadow: rgba(255, 107, 157, 0.3);
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+        }
+
+        /* Bubbly Card Design with Rounded Corners */
+        .memory-card {
+            perspective: 1000px;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .memory-card:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .memory-card:active {
+            transform: scale(0.95);
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .memory-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px var(--card-shadow);
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            font-size: 2rem;
+        }
+
+        .card-back {
+            background: var(--card-bg);
+            transform: rotateY(180deg);
+            font-size: 3rem;
+        }
+
+        .memory-card.matched {
+            animation: matchBounce 0.6s ease-in-out;
+            pointer-events: none;
+        }
+
+        /* Bouncy Animations */
+        @keyframes matchBounce {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.2) rotate(5deg); }
+            50% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.15) rotate(3deg); }
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(10deg); }
+            50% { transform: scale(1.2) rotate(-10deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .celebrate {
+            animation: celebrate 0.8s ease-in-out infinite;
+        }
+
+        /* High Contrast Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%);
+            color: white;
+            font-size: 1.5rem;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(196, 69, 105, 0.4);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(196, 69, 105, 0.6);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Confetti Effect */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #FF6B9D;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    
+    <!-- Header Section -->
+    <header class="text-center mb-8">
+        <h1 class="text-5xl font-bold text-white mb-2 drop-shadow-lg" style="text-shadow: 3px 3px 6px rgba(0,0,0,0.2);">
+            🎮 Memory Match 🎮
+        </h1>
+        <p class="text-2xl text-white font-semibold" id="theme-title">Theme of the Day: Loading...</p>
+        <div class="mt-4 flex gap-4 justify-center items-center flex-wrap">
+            <div class="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span class="text-xl font-bold" style="color: var(--primary-color);">Moves: <span id="moves-count">0</span></span>
+            </div>
+            <div class="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span class="text-xl font-bold" style="color: var(--secondary-color);">Matches: <span id="matches-count">0</span>/8</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Board -->
+    <main class="w-full max-w-4xl">
+        <div id="game-board" class="grid grid-cols-4 gap-4 mb-8" role="region" aria-label="Memory game board">
+            <!-- Cards will be generated here by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Control Buttons -->
+    <footer class="text-center">
+        <button 
+            id="new-game-btn" 
+            class="btn-primary"
+            aria-label="Start a new game with a new theme"
+            onclick="initGame()">
+            🎲 New Game
+        </button>
+    </footer>
+
+    <!-- Win Modal -->
+    <div id="win-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl p-8 text-center max-w-md mx-4 shadow-2xl">
+            <div class="text-6xl mb-4 celebrate">🎉</div>
+            <h2 class="text-4xl font-bold mb-4" style="color: var(--primary-color);">You Won!</h2>
+            <p class="text-2xl mb-6">Great job! You matched all the pairs!</p>
+            <p class="text-xl mb-6">Total Moves: <span id="final-moves" class="font-bold">0</span></p>
+            <button 
+                class="btn-primary"
+                aria-label="Play again with a new theme"
+                onclick="initGame()">
+                🎮 Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // GAME STATE MANAGEMENT
+        // ============================================
+        let gameState = {
+            cards: [],
+            flippedCards: [],
+            matchedPairs: 0,
+            moves: 0,
+            canFlip: true,
+            currentTheme: {}
+        };
+
+        // ============================================
+        // AI THEME GENERATOR (Simulates Gemini 1.5 Flash)
+        // ============================================
+        /**
+         * Simulates a Gemini AI call to generate themed emoji pairs
+         * In production, this would call: 
+         * const response = await gemini.generateContent("Generate 8 emoji pairs for theme: Magical Forest")
+         * 
+         * Security Note: No external API calls are made in this demo version
+         * to ensure zero external dependencies beyond Tailwind CDN
+         */
+        function generateAITheme() {
+            const themes = [
+                {
+                    name: "🌲 Magical Forest",
+                    emojis: ["🦊", "🦉", "🍄", "🌳", "🦌", "🐿️", "🌺", "🦋"],
+                    colors: {
+                        primary: "#4CAF50",
+                        secondary: "#2E7D32",
+                        bgStart: "#C8E6C9",
+                        bgEnd: "#A5D6A7"
+                    }
+                },
+                {
+                    name: "🌊 Ocean Adventure",
+                    emojis: ["🐠", "🐙", "🦈", "🐚", "🦀", "🐬", "🦭", "⭐"],
+                    colors: {
+                        primary: "#2196F3",
+                        secondary: "#1565C0",
+                        bgStart: "#B3E5FC",
+                        bgEnd: "#81D4FA"
+                    }
+                },
+                {
+                    name: "🍰 Sweet Treats",
+                    emojis: ["🍪", "🧁", "🍩", "🍰", "🍭", "🍬", "🎂", "🍨"],
+                    colors: {
+                        primary: "#FF6B9D",
+                        secondary: "#C44569",
+                        bgStart: "#FEC8D8",
+                        bgEnd: "#FFDDE1"
+                    }
+                },
+                {
+                    name: "🚀 Space Explorer",
+                    emojis: ["🚀", "🌟", "🪐", "👽", "🛸", "🌙", "☄️", "🌍"],
+                    colors: {
+                        primary: "#673AB7",
+                        secondary: "#4527A0",
+                        bgStart: "#D1C4E9",
+                        bgEnd: "#B39DDB"
+                    }
+                },
+                {
+                    name: "🦕 Dinosaur Park",
+                    emojis: ["🦕", "🦖", "🥚", "🌋", "🦴", "🌿", "🪨", "🦎"],
+                    colors: {
+                        primary: "#FF9800",
+                        secondary: "#E65100",
+                        bgStart: "#FFE0B2",
+                        bgEnd: "#FFCC80"
+                    }
+                },
+                {
+                    name: "🌈 Rainbow Friends",
+                    emojis: ["🌈", "☀️", "⭐", "💫", "🎨", "🎪", "🎭", "🎡"],
+                    colors: {
+                        primary: "#E91E63",
+                        secondary: "#AD1457",
+                        bgStart: "#F8BBD0",
+                        bgEnd: "#F48FB1"
+                    }
+                }
+            ];
+
+            // Simulate AI selection based on "day of year" for consistent daily theme
+            const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+            const selectedTheme = themes[dayOfYear % themes.length];
+            
+            console.log(`🤖 AI Generated Theme: ${selectedTheme.name}`);
+            return selectedTheme;
+        }
+
+        // ============================================
+        // CARD SHUFFLING ALGORITHM
+        // ============================================
+        /**
+         * Fisher-Yates shuffle algorithm for random card distribution
+         * Ensures fair and unpredictable card placement
+         */
+        function shuffleCards(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // ============================================
+        // THEME APPLICATION
+        // ============================================
+        /**
+         * Applies the AI-generated theme colors to CSS variables
+         * Enables dynamic theming without page reload
+         */
+        function applyTheme(theme) {
+            const root = document.documentElement;
+            root.style.setProperty('--primary-color', theme.colors.primary);
+            root.style.setProperty('--secondary-color', theme.colors.secondary);
+            root.style.setProperty('--bg-gradient-start', theme.colors.bgStart);
+            root.style.setProperty('--bg-gradient-end', theme.colors.bgEnd);
+            
+            document.getElementById('theme-title').textContent = `Theme of the Day: ${theme.name}`;
+        }
+
+        // ============================================
+        // GAME BOARD RENDERING
+        // ============================================
+        /**
+         * Creates and renders all memory cards with accessibility features
+         * Each card has proper ARIA labels for screen reader support
+         */
+        function renderGameBoard() {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.innerHTML = '';
+
+            gameState.cards.forEach((emoji, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'memory-card h-24 sm:h-32';
+                cardElement.dataset.index = index;
+                cardElement.dataset.emoji = emoji;
+                cardElement.setAttribute('role', 'button');
+                cardElement.setAttribute('aria-label', `Memory card ${index + 1}, click to flip`);
+                cardElement.setAttribute('tabindex', '0');
+                
+                cardElement.innerHTML = `
+                    <div class="card-inner h-full">
+                        <div class="card-front">
+                            <span aria-hidden="true">❓</span>
+                        </div>
+                        <div class="card-back">
+                            <span role="img" aria-label="${emoji}">${emoji}</span>
+                        </div>
+                    </div>
+                `;
+
+                // Click event
+                cardElement.addEventListener('click', () => flipCard(cardElement));
+                
+                // Keyboard accessibility (Enter/Space to flip)
+                cardElement.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        flipCard(cardElement);
+                    }
+                });
+
+                gameBoard.appendChild(cardElement);
+            });
+        }
+
+        // ============================================
+        // CARD FLIPPING LOGIC
+        // ============================================
+        /**
+         * Handles card flip interactions with validation
+         * Prevents flipping more than 2 cards or already matched cards
+         */
+        function flipCard(cardElement) {
+            // Prevent flipping if game is locked or card is already flipped/matched
+            if (!gameState.canFlip || 
+                cardElement.classList.contains('flipped') || 
+                cardElement.classList.contains('matched')) {
+                return;
+            }
+
+            // Flip the card
+            cardElement.classList.add('flipped');
+            gameState.flippedCards.push(cardElement);
+
+            // Update ARIA label for accessibility
+            const emoji = cardElement.dataset.emoji;
+            cardElement.setAttribute('aria-label', `Memory card showing ${emoji}`);
+
+            // Check for match when 2 cards are flipped
+            if (gameState.flippedCards.length === 2) {
+                gameState.moves++;
+                document.getElementById('moves-count').textContent = gameState.moves;
+                gameState.canFlip = false;
+                
+                setTimeout(checkMatch, 800);
+            }
+        }
+
+        // ============================================
+        // MATCH CHECKING LOGIC
+        // ============================================
+        /**
+         * Compares two flipped cards and handles match/no-match scenarios
+         * Triggers celebration animation on successful match
+         */
+        function checkMatch() {
+            const [card1, card2] = gameState.flippedCards;
+            const emoji1 = card1.dataset.emoji;
+            const emoji2 = card2.dataset.emoji;
+
+            if (emoji1 === emoji2) {
+                // Match found! 🎉
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                card1.setAttribute('aria-label', `Matched card showing ${emoji1}`);
+                card2.setAttribute('aria-label', `Matched card showing ${emoji2}`);
+                
+                gameState.matchedPairs++;
+                document.getElementById('matches-count').textContent = gameState.matchedPairs;
+
+                // Check for win condition
+                if (gameState.matchedPairs === 8) {
+                    setTimeout(celebrateWin, 500);
+                }
+            } else {
+                // No match - flip cards back
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                card1.setAttribute('aria-label', `Memory card ${card1.dataset.index}, click to flip`);
+                card2.setAttribute('aria-label', `Memory card ${card2.dataset.index}, click to flip`);
+            }
+
+            // Reset flipped cards array and allow new flips
+            gameState.flippedCards = [];
+            gameState.canFlip = true;
+        }
+
+        // ============================================
+        // WIN CELEBRATION
+        // ============================================
+        /**
+         * Displays win modal and creates confetti animation
+         * Provides positive reinforcement for young players
+         */
+        function celebrateWin() {
+            // Update final score
+            document.getElementById('final-moves').textContent = gameState.moves;
+            
+            // Show win modal
+            const modal = document.getElementById('win-modal');
+            modal.classList.remove('hidden');
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-label', 'You won the game!');
+
+            // Create confetti effect
+            createConfetti();
+
+            // Play celebration sound (if audio API is available)
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 523.25; // C5 note
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('Audio not available');
+            }
+        }
+
+        // ============================================
+        // CONFETTI ANIMATION
+        // ============================================
+        /**
+         * Creates colorful confetti particles for win celebration
+         * Uses random colors and positions for visual variety
+         */
+        function createConfetti() {
+            const colors = ['#FF6B9D', '#C44569', '#4CAF50', '#2196F3', '#FF9800', '#E91E63'];
+            const confettiCount = 50;
+
+            for (let i = 0; i < confettiCount; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        // ============================================
+        // GAME INITIALIZATION
+        // ============================================
+        /**
+         * Initializes a new game with fresh theme and shuffled cards
+         * Resets all game state and UI elements
+         */
+        function initGame() {
+            // Hide win modal if visible
+            document.getElementById('win-modal').classList.add('hidden');
+
+            // Generate new AI theme
+            gameState.currentTheme = generateAITheme();
+            applyTheme(gameState.currentTheme);
+
+            // Create card pairs (8 emojis × 2 = 16 cards)
+            const cardPairs = [...gameState.currentTheme.emojis, ...gameState.currentTheme.emojis];
+            gameState.cards = shuffleCards(cardPairs);
+
+            // Reset game state
+            gameState.flippedCards = [];
+            gameState.matchedPairs = 0;
+            gameState.moves = 0;
+            gameState.canFlip = true;
+
+            // Update UI
+            document.getElementById('moves-count').textContent = '0';
+            document.getElementById('matches-count').textContent = '0';
+
+            // Render game board
+            renderGameBoard();
+
+            console.log('🎮 New game started!');
+        }
+
+        // ============================================
+        // AUTO-START GAME ON PAGE LOAD
+        // ============================================
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
